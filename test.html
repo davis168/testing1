@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+    <title>JavaScript RSA Encryption</title>
+    <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+    <script src="http://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="jsencrypt.js"></script>
+    <script type="text/javascript">
+
+        // Call this code when the page is done loading.
+        $(function() {
+
+            // Run a quick encryption/decryption when they click.
+            $('#testme').click(function() {
+
+                // Encrypt with the public key...
+                var encrypt = new JSEncrypt();
+                encrypt.setPublicKey($('#pubkey').val());
+                var encrypted = encrypt.encrypt($('#input').val());
+
+                console.log('text length: ' + $('#input').val().length);
+                console.log(encrypted);
+                $('#input_encrypt').val(encrypted);
+                // Decrypt with the private key...
+                var decrypt = new JSEncrypt();
+                decrypt.setPrivateKey($('#privkey').val());
+                var uncrypted = decrypt.decrypt(encrypted);
+                console.log(uncrypted);
+                $('#input_decrypt').val(uncrypted);
+                // Now a simple check to see if the round-trip worked.
+                if (uncrypted === $('#input').val()) {
+                    //alert('It works!!!');
+                }
+                else {
+                    alert('Something went wrong....');
+                }
+            });
+
+            //*******Sample Login*********//
+            var serverPublicKey = '';
+            $('#btnGetPublicKey').click(function () {
+                axios.get('http://18.139.144.112/api/v1/app/health-check')
+                    .then(function (response) {
+                        serverPublicKey = response.data.key;
+                        console.log(serverPublicKey);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            });
+
+            $('#sendme').click(function () {
+
+                var encrypt = new JSEncrypt();
+                encrypt.setPublicKey(serverPublicKey);
+                var usernameEnc = encrypt.encrypt('kravanhsup');
+                var passwordEnc = encrypt.encrypt('123');
+                console.log('username: ' + usernameEnc);
+                console.log('password: ' + passwordEnc);
+
+                axios.defaults.headers.common['app'] = 'SUP';
+                axios.post('http://18.139.144.112/api/v1/app/authenticate', {
+                    username: usernameEnc,
+                    password: passwordEnc
+                })
+                .then(function (response) {
+                    console.log(response.data);
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+<label for="privkey">Private Key</label><br/>
+<textarea id="privkey" rows="15" cols="65">-----BEGIN RSA PRIVATE KEY-----
+MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAKEnY45dQjfBXfw+
+vfB9BztuPAONPIr+j0uqS4v2Ew8MFNCAm+Em8p3ktlSmNfO4FE3EP8lNZE0yAgGH
+sLJeZ9eDTxLjo3ocLioBgGI5L4jsvdTivC9wCwyU+5iDl1z/kz97w2FRG6mryhyi
+zMPsqlLoRoM7N56OSwc7UyTKwA1jAgMBAAECgYByCZWBoKzDF6qSXTO7gj4j6BW/
+zaoSEaEFQjTDjhZeh4YTJW8pHI6C/N2peRSkqpZzkXQx1vorRj/1JTf8gKGp1X7j
+A3ukNKfOtqRzhhv2r2Hi67fXiPl3/LgubFc7rl/PRqgE2fqcsvQJ7fQRtI38oVkz
+V1VFRnVMkmpvtYDiQQJBAOoH32MAwFeylz/qDFD7ykxIOZywJG+ZZ6ZvyReEv500
+5bbWHiJNXaN3fJUW0v/I9IdIVnAruWJqRVgH8wonVG8CQQCwSCt/DaP+nsuC59gq
+zKWdAv8iZOBh0BlOMotB0uQCsnIcPI5KDlZhK49k2diAPx2N9eQaAKcmKsEM5g3w
+MthNAkEAkQC7uj3W7v9qk2FSrEK1/zmo6JqCmNr1y7vrXrUTfDYwNm7IUPyajhQU
+jtOLfIxoZgG9/NY6kO3DdV3Hinz/5QJAbZaQI84xE0tYrSrAgerzUibYwWMA8w3R
+jYFyfRtD0EFrGw6yTmuXW5Ue8c1UAHY8Q1KH2XpqbxnJJeGm7JpPSQJBAKlveh/g
+U315wip5HfuSbQgyNuhsFohox54NERCYTRtYs2sSNr3amIBNeOun+3Brq0+CR4MC
+QsH3bnaXW0nnNVQ=
+-----END RSA PRIVATE KEY-----</textarea><br/>
+
+<label for="pubkey">Public Key</label><br/>
+<textarea id="pubkey" rows="15" cols="65">-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQChJ2OOXUI3wV38Pr3wfQc7bjwD
+jTyK/o9LqkuL9hMPDBTQgJvhJvKd5LZUpjXzuBRNxD/JTWRNMgIBh7CyXmfXg08S
+46N6HC4qAYBiOS+I7L3U4rwvcAsMlPuYg5dc/5M/e8NhURupq8ocoszD7KpS6EaD
+OzeejksHO1MkysANYwIDAQAB
+-----END PUBLIC KEY-----</textarea><br/>
+
+<label for="input">Text to encrypt:</label><br/>
+<textarea id="input" name="input" type="text" rows=4 cols=70>This is a test!</textarea><br/>
+<label for="input">encrypted:</label><br/>
+<textarea id="input_encrypt" name="input_encrypt" type="text" rows=4 cols=70></textarea><br/>
+<label for="input">decrypt:</label><br/>
+<textarea id="input_decrypt" name="input_decrypt" type="text" rows=4 cols=70></textarea><br/>
+
+<input id="testme" type="button" value="Test Me!!!" /><br/>
+
+
+<br/>
+<h3>Sample login with encryption</h3>
+<hr/>
+<br/>
+
+<input id="btnGetPublicKey" type="button" value="get public key from server" /><br/>
+<input id="sendme" type="button" value="Send to Server" /><br/>
+</body>
+</html>
+
+
+
